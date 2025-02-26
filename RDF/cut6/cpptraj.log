@@ -1,0 +1,3 @@
+# 10/09/24 10:53:15
+parm ../pGM.prmtop
+trajin rcut6.nc

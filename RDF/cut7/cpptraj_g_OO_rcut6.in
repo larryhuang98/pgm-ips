@@ -1,0 +1,4 @@
+parm pGM.prmtop
+trajin job_7/rcut7.nc
+rdf g_OO :WAT@O :WAT@O out job_7/g_OO_rcut6.dat 0.001 10
+run

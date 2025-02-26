@@ -1,0 +1,4 @@
+parm pGM.prmtop
+trajin job_6/pme.nc
+rdf g_OO :WAT@O :WAT@O out job_6/g_OO_pme.dat 0.001 10
+run

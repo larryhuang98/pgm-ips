@@ -1,0 +1,72 @@
+# Environment variables setup
+if [ -z "$TESTsander" ]; then
+    TESTsander="/home8/larry/ips-pgm/bin/sander.MPI"
+fi
+if [ -z "$DO_PARALLEL" ]; then
+    DO_PARALLEL="mpirun -np 16"
+fi
+
+# Iterate over different values of ee_dsum_cut and create separate job scripts
+for ee_dsum_cut in 6 7 8 9 10
+do
+    # Create a unique job script for each value of ee_dsum_cut
+    cat > submit_job_${ee_dsum_cut}.sh <<EOF
+#!/bin/bash
+
+#SBATCH --job-name=serial-nve-${ee_dsum_cut}
+#SBATCH --output=sander-test_${ee_dsum_cut}_%j.out
+#SBATCH --error=sander-test_${ee_dsum_cut}_%j.err
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=6G
+#SBATCH --time=24:00:00
+#SBATCH --partition=cpu-short
+
+# Prepare input file for ee_dsum_cut=${ee_dsum_cut}
+for i in {1..10}; do
+  if [ \$i -eq 1 ]; then
+    # Start from the original restart file for the first run
+    restart_file="ips.rst"
+  else
+    # For subsequent runs, restart from the previous run
+    restart_file="job_${ee_dsum_cut}/rcut${ee_dsum_cut}_run_pme\$((i-1)).rst"
+  fi
+
+  # Create the input file for the current run
+  cat > mdin_${ee_dsum_cut}_run\$i <<MDIN
+   Single point calculation, run \$i for ee_dsum_cut=${ee_dsum_cut}.
+ &cntrl
+   imin=0, nstlim=5000,
+   irest=1, ntx=5,
+   ntt=3, temp0=300, gamma_ln=1.0,
+   ntb=1,
+   ntp=0,
+   ntc=2, ntf=2, tol=0.000001, 
+   cut=10., 
+   ntpr=1, ntwr=1, ntwx=1,ntwv=1,
+   dt=0.001,
+   ipgm=1,
+ /
+ &ewald
+  skinnb=0.,ew_coeff=0.4,nfft1=50,nfft2=50,nfft3=50,order=8,vdwmeth=0
+ /
+ &pol_gauss
+   pol_gauss_verbose=0,ee_dsum_cut=${ee_dsum_cut},
+   dipole_scf_tol=0.01,dipole_scf_init=3,dipole_scf_init_order=3,dipole_scf_init_step=2,
+   scf_solv_opt=3,scf_sor_niter=100,scf_sor_coefficient=0.65,
+   scf_cg_niter=50,scf_local_niter=3,scf_local_cut=4.0
+ /
+MDIN
+
+  # Create a unique output directory for the current run
+  mkdir -p job_${ee_dsum_cut}/run\$i
+
+  # Execute the simulation for the current run
+  $DO_PARALLEL $TESTsander -O -i mdin_${ee_dsum_cut}_run\$i -p pGM.prmtop -c \$restart_file -o job_${ee_dsum_cut}/run\$i/rcut${ee_dsum_cut}_run\$i.out -x job_${ee_dsum_cut}/run\$i/rcut${ee_dsum_cut}_run\$i.nc -v job_${ee_dsum_cut}/run\$i/rcutv${ee_dsum_cut}_run\$i.nc -r job_${ee_dsum_cut}/rcut${ee_dsum_cut}_run_pme\$i.rst
+done
+EOF
+
+    # Submit the job
+    sbatch submit_job_${ee_dsum_cut}.sh
+done
