@@ -1,0 +1,1 @@
+To obtain the induced dipole, one need to turn on `dipole_print=n` under `pol_gauss` section. Then, sander will print the dipole moment everystep. Under this directory, we provide the induced dipole result using the provided prmtop and restart files at the first frame.
