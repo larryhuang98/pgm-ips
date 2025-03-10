@@ -1,0 +1,6 @@
+# 02/27/25 20:28:03
+parm prmtop
+trajin rst
+trajout my.pdb
+run
+exit
